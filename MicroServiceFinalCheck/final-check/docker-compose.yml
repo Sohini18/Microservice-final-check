@@ -1,0 +1,79 @@
+version: '3'
+services:
+ #mysql
+ mysql-container:
+  image: mysql
+  container_name : mysql-container
+  restart: always
+  environment:
+   MYSQL_DATABASE: 'docker_db'
+   # So you don't have to use root, but you can if you like
+   MYSQL_USER: 'user'
+   # You can use whatever password you like
+   MYSQL_PASSWORD: 'mysql'
+   # Password for root access
+   MYSQL_ROOT_PASSWORD: 'mysql'
+  ports:
+   # <Port exposed> : < MySQL Port running inside container>
+   - '3306:3306'
+  expose:
+   # Opens port 3306 on the container
+   - '3306'
+   # Where our data will be persisted
+  networks:
+      - sql_network 
+  volumes:
+      - ./init_schema:/docker-entrypoint-initdb.d
+ 
+
+ #Eureka server  
+ eureka-server-container:
+    image: eureka-server:1.2
+    container_name: eureka-server-container
+    build: eureka-discovery-service/.
+    networks:
+      - my_network
+    ports:
+      - '8761:8761'
+ #Eureka client
+ zuul-container:
+    image: zuul:1.2
+    container_name: zuul-container
+    build: zuul-gateway-service/.
+    networks:
+      - my_network
+    ports:
+      - '8083:8083'
+
+
+  #Eureka client
+ auth-container:
+    image: auth-service:1.2
+    container_name: auth-container
+    build: auth-service/.
+    networks:
+      - my_network
+    ports:
+      - '9100:9100'
+
+
+
+ #Employee Server
+ movie-container:
+    image: movieservice:1.2
+    container_name: movie-container
+    build: movie-service/.
+    networks:
+      - my_network
+      - sql_network 
+    ports:
+      - '8082:8082'
+    depends_on:
+      - mysql-container
+    links:
+      - mysql-container:mysql-container
+
+
+networks:
+    my_network:
+    sql_network: 
